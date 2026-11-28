@@ -759,6 +759,24 @@ const illusion9RainArena =
   Array.from({ length: 20 }, () => Array(12).fill(null));
 
   illusion4LetterColors = Array.from({ length: 20 }, () => Array(12).fill(null));
+// ===== I10 M/W DREHUNG ====
+let i10Flipped = Array.from(
+  { length: 20 },
+  () => Array(12).fill(false)
+);
+
+ function getI10Letter(y, x) {
+  const letter = arena[y][x];
+
+  if (!letter) return null;
+
+  if (getIllusionRound() === 10 && i10Flipped[y][x]) {
+    if (letter === 'M') return 'W';
+    if (letter === 'W') return 'M';
+  }
+
+  return letter;
+} 
 
 const highlights = Array.from({ length: 20 }, () => Array(12).fill(null));
 let landingEffects = [];
@@ -1921,6 +1939,7 @@ hintDisabled = false;
   illusion9RainArena.forEach(row => row.fill(null));
   illusion9Drops = [];
   illusion4LetterColors.forEach(row => row.fill(null));
+  i10Flipped.forEach(row => row.fill(false));
   clearHighlights();
 
   mindMessageShown = false;
@@ -2110,9 +2129,14 @@ function rubberImpact(x, y) {
   
 function merge(arena, player) { 
   arena[player.pos.y][player.pos.x] = player.letter;
-   createLandingEffect(player.pos.x, player.pos.y);
+     // ===== ILLUSION 10 – M/W DREHZUSTAND =====
+ i10Flipped[player.pos.y][player.pos.x] =
+   getIllusionRound() === 10 &&
+    (player.letter === 'M' || player.letter === 'W');
+  
+  createLandingEffect(player.pos.x, player.pos.y);
   // GUMMI-EFFEKT BEIM AUFPRALL
-   rubberImpact(player.pos.x, player.pos.y);
+  rubberImpact(player.pos.x, player.pos.y);
  
   // ILLUSION 4 – Buchstabenfarbe speichern
 // Farbe des gelandeten Buchstabens speichern
@@ -2257,8 +2281,8 @@ if (!found.length && !fakeFrameHit) return;
 
   let illusion2InvalidWord = false;
   
-  found.forEach(group=>{
-    const letters = group.map(([y,x])=>arena[y][x]).join('');
+found.forEach(group=>{
+    const letters = group.map(([y,x])=>getI10Letter(y,x)).join('');
     const upperLetters = letters.toUpperCase();
 // ILLUSION 4 – Gefundenes Wort mit Fallenfarbe?
 if (getIllusionRound() === 4) {
@@ -2425,6 +2449,7 @@ else if(targetWordFound || falseHintFound || fakeFrameHit){
   // Spielfeld reset
   arena.forEach(r => r.fill(null));
   illusion4LetterColors.forEach(row => row.fill(null));
+  i10Flipped.forEach(row => row.fill(false));
   clearHighlights();
 
   // Spieler reset
@@ -2453,6 +2478,7 @@ else if(targetWordFound || falseHintFound || fakeFrameHit){
   // Spielfeld leeren
   arena.forEach(r=>r.fill(null));
   illusion4LetterColors.forEach(row => row.fill(null));
+  i10Flipped.forEach(row => row.fill(false));
   clearHighlights();
   resetPlayer();
 
@@ -2609,30 +2635,33 @@ fakePulseTriggered = false;
 found.flat().forEach(([y,x])=>{
   arena[y][x] = null;
   illusion4LetterColors[y][x] = null;
+  i10Flipped[y][x] = false;
 });
 applyGravity();
     clearHighlights();
   },300);
 }
 
+
 function findWords(){
   const found=[];
   for(let y=0;y<arena.length;y++){
     let word='', pos=[];
     for(let x=0;x<=arena[0].length;x++){
-      const c = arena[y][x];
+      const c = getI10Letter(y, x);
       if(c){ word+=c; pos.push([y,x]); } else { extract(word,pos,found); word=''; pos=[]; }
     }
   }
   for(let x=0;x<arena[0].length;x++){
     let word='', pos=[];
     for(let y=0;y<=arena.length;y++){
-      const c = arena[y]?.[x];
+      const c = arena[y]?.[x] != null ? getI10Letter(y, x) : null;
       if(c){ word+=c; pos.push([y,x]); } else { extract(word,pos,found); word=''; pos=[]; }
     }
   }
   return found;
 }
+
 
 function extract(word,pos,found){
   if(word.length<MIN_LEN) return;
@@ -2694,6 +2723,7 @@ function clearDiagonalSixByColor(){
       arena[y][x] = null;
       illusion9RainArena[y][x] = null;
       illusion4LetterColors[y][x] = null;
+      i10Flipped[y][x] = false;
       
     });
 
@@ -2749,7 +2779,8 @@ function applyGravity() {
 
         const originalLetter = arena[readY][x];
         const rainLetter = illusion9RainArena[readY][x];
-
+        const flipped = i10Flipped[readY][x];
+        
         if (originalLetter !== null || rainLetter !== null) {
 
           if (writeY !== readY) {
@@ -2765,7 +2796,9 @@ function applyGravity() {
 
             illusion4LetterColors[readY][x] = null;
 
-
+            i10Flipped[writeY][x] = flipped;
+            i10Flipped[readY][x] = false;
+          
           }
 
           writeY--;
@@ -2776,7 +2809,8 @@ function applyGravity() {
         arena[y][x] = null;
         illusion9RainArena[y][x] = null;
         illusion4LetterColors[y][x] = null;
-        
+        i10Flipped[y][x] = false;
+      
       }
     }
 
@@ -2966,6 +3000,7 @@ if (
     illusion9RainArena.forEach(row => row.fill(null));
     illusion9Drops = [];
     illusion4LetterColors.forEach(row => row.fill(null));
+    i10Flipped.forEach(row => row.fill(false));
   }
 }
 /* ===== FALLING LETTERS PREVIEW ===== */
@@ -3559,37 +3594,40 @@ ctx.fillStyle =
    illusion4LetterColors[y][x] ||
      COLORS[(x+y)%COLORS.length]; 
        // ===== RUBBER IMPACT =====
-// ===== RUBBER IMPACT =====
+
+// ===== I10 – M/W DREHUNG + RUBBER IMPACT =====
 const key = `${x},${y}`;
 const impactTime = rubberImpactTimes[key];
+
+const isI10Flipped =
+  getIllusionRound() === 10 && i10Flipped[y][x];
+
+ctx.save();
+ctx.translate(x + 0.5, y + 0.5);
+
+if (isI10Flipped) {
+  ctx.rotate(Math.PI);
+}
 
 if (impactTime) {
   const elapsed = Date.now() - impactTime;
 
   if (elapsed < 300) {
-
     const progress = elapsed / 300;
-
-    // Erst zusammendrücken, dann zurückfedern
     const squash = Math.sin(progress * Math.PI * 2);
 
     const sx = 1 + squash * 0.16;
     const sy = 1 - squash * 0.16;
 
-    ctx.save();
-    ctx.translate(x + 0.5, y + 0.5);
     ctx.scale(sx, sy);
-    ctx.fillText(v, 0, 0);
-    ctx.restore();
-
   } else {
     delete rubberImpactTimes[key];
-    ctx.fillText(v, x + 0.5, y + 0.5);
   }
-
-} else {
-  ctx.fillText(v, x + 0.5, y + 0.5);
 }
+
+ctx.fillText(v, 0, 0);
+ctx.restore();
+
     }
   });
 });
@@ -3866,6 +3904,7 @@ function restartGame() {
   illusion9RainArena.forEach(row => row.fill(null));
   illusion9Drops = [];
   illusion4LetterColors.forEach(row => row.fill(null));
+  i10Flipped.forEach(row => row.fill(false));
   clearHighlights();
   shuffleIllusions();
   shuffleWords();
