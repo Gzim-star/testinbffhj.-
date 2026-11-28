@@ -634,6 +634,17 @@ const WORDS = [
 ];
 const MIN_LEN = 4;
 const COLORS = ['#ffffff'];
+// 🌈 ILLUSION 9 – RAINBOW LETTER COLORS
+const illusion9RainbowColors = [
+  '#ff3030',
+  '#ff8c00',
+  '#ffd600',
+  '#00d66b',
+  '#00bfff',
+  '#4169e1',
+  '#b44cff',
+  '#ff4fa3'
+];
 // ===== ILLUSION 4 – COLORED LETTER TRAP =====
 let illusion4LetterColor = null;
 let illusion4PlayerColor = '#ffffff';
@@ -774,6 +785,7 @@ let illusion10FakeHints = [];
 
 let illusion9FakeHints = [];
 let illusion9Drops = [];
+let illusion9RainbowColorAssigned = false;
 // 🔲 FRAME POSITION (GLOBAL)
 let frameX = 0;
 let frameY = 0;
@@ -2897,6 +2909,7 @@ function resetPlayer(){
   player.color = null;
   player.frameFloor = null;
 
+  illusion9RainbowColorAssigned = false;
   // ILLUSION 4
   if (getIllusionRound() === 4 && illusion4LetterColor) {
     illusion4PlayerColor =
@@ -3640,7 +3653,19 @@ illusion9Drops.forEach(letter => {
   }
 
 });
+// 🌈 ILLUSION 9 – JEDER BUCHSTABE BEKOMMT EINE EIGENE FARBE
+if (
+  getIllusionRound() === 9 &&
+  !illusion9RainbowColorAssigned
+) {
+  player.color =
+    illusion9RainbowColors[
+      Math.floor(Math.random() * illusion9RainbowColors.length)
+    ];
 
+  illusion9RainbowColorAssigned = true;
+}
+  
 if (player.color) {
   ctx.fillStyle = player.color;
 } else if (getIllusionRound() === 4) {
